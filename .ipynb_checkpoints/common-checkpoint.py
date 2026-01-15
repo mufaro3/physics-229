@@ -10,8 +10,9 @@ from PIL import Image
 import io
 from abc import ABC, abstractmethod
 from tabulate import tabulate
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Optional, Tuple
 from copy import copy, deepcopy
+from matplotlib import colors
 
 from IPython.display import display, Markdown, Latex
 
@@ -57,13 +58,27 @@ class GraphingOptions:
             plt.ylabel(ylabel)
             
     def plot_data(self, x, y, dx, dy, label=None, color=None):
-        plt.errorbar(x, y, xerr=dx, yerr=dy, 
-                     marker     = self.data_marker,
-                     markersize = self.data_marker_size,
-                     linestyle  = self.data_linestyle,
-                     alpha      = self.data_alpha,
-                     color      = color if color is not None else self.data_color,
-                     label      = label)
+        base_color = color if color is not None else self.data_color
+        base_rgb = colors.to_rgb(base_color)
+
+        plt.errorbar(
+            x, y,
+            xerr=dx,
+            yerr=dy,
+            marker=self.data_marker,
+            markersize=self.data_marker_size,
+            linestyle=self.data_linestyle,
+
+            # opaque markers
+            color=base_color,
+
+            # translucent error bars
+            ecolor=(*base_rgb, 0.25),
+
+            elinewidth=1.0,
+            capsize=3,
+            label=label,
+        )
     
     def plot_model(self, model_x, model_y):
         plt.plot(model_x, model_y, 
@@ -112,6 +127,7 @@ class Model:
     param_names:   Sequence[str] = field(default_factory=list)
     param_values:  np.ndarray = field(default_factory=lambda: np.array([]))
     param_uncerts: np.ndarray = field(default_factory=lambda: np.array([]))
+    param_bounds:  Optional[Tuple[np.ndarray, np.ndarray]] = None
 
     def values(self):
         return tuple(self.param_values)
@@ -121,6 +137,14 @@ class Model:
 
     def labels(self):
         return tuple(self.param_names)
+    
+    def has_bounds(self) -> bool:
+        return self.param_bounds is not None
+
+    def bounds(self):
+        if self.param_bounds is None:
+            raise ValueError("Model has no parameter bounds")
+        return self.param_bounds
 
     def update_fit_results(self, fit_params, fit_errors):
         self.param_values = np.array(fit_params)
@@ -587,17 +611,17 @@ def autofit(data: Dataset, model: Model, graphing_options: GraphingOptions):
     results.initial_guess_residuals_graph = graphing_options.save_graph_and_close()
 
     # Perform the fit
-    
-    fit_params, fit_cov = curve_fit(
-        fit_function, 
-        data.x, data.y, 
-        
-        sigma          = data.dy, 
-        p0             = guesses,
+    kwargs = dict(
+        p0 = guesses,
         absolute_sigma = True,
-        maxfev         = int(1e5)
+        maxfev = int(1e5),
+        sigma = data.dy
     )
     
+    if model.has_bounds():
+        kwargs["bounds"] = model.bounds()
+    
+    fit_params, fit_cov = curve_fit(fit_function, data.x, data.y, **kwargs)
     fit_params_error = np.sqrt(np.diag(fit_cov))
     
     # Store the fit results
