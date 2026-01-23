@@ -13,6 +13,7 @@ from tabulate import tabulate
 from typing import Callable, Sequence, Optional, Tuple
 from copy import copy, deepcopy
 from matplotlib import colors
+import prettyprinter as pp
 
 from IPython.display import display, Markdown, Latex
 
@@ -29,8 +30,8 @@ class Dataset:
 class GraphingOptions:
     x_label: str = ''
     y_label: str = ''
-    x_units: str = ''
-    y_units: str = ''
+    x_units: str = None
+    y_units: str = None
     
     data_marker:      str   = '.'
     data_marker_size: int   = 2
@@ -47,14 +48,19 @@ class GraphingOptions:
     data_round: int = 1
 
     def set_labels(self, xlabel=None, ylabel=None):
-        if xlabel is None:
+        if self.x_units is not None:
             plt.xlabel(f"{self.x_label} ({self.x_units})")
         else:
-            plt.xlabel(xlabel)
+            plt.xlabel(self.x_label)
 
-        if ylabel is None:
+        if self.y_units is not None:
             plt.ylabel(f"{self.y_label} ({self.y_units})")
         else:
+            plt.ylabel(self.y_label)
+            
+        if xlabel is not None:
+            plt.xlabel(xlabel)
+        if ylabel is not None:
             plt.ylabel(ylabel)
             
     def plot_data(self, x, y, dx, dy, label=None, color=None):
@@ -91,7 +97,10 @@ class GraphingOptions:
     
     def plot_residuals(self, x, residuals, y_uncert):
         plt.title("Residuals")
-        plt.ylabel(f"Residual y-y_fit [{self.y_units}]")
+        if self.y_units is not None:
+            plt.ylabel(f"Residual y-y_fit [{self.y_units}]")
+        else:
+            plt.ylabel(f"Residual y-y_fit")
         plt.errorbar(x, residuals, yerr=y_uncert, 
                      marker     = self.data_marker,
                      markersize = self.data_marker_size,
@@ -155,18 +164,23 @@ class Model:
             if units is None or len(units) <= i:
                 return label
             else:
-                return f'{label} ({units[i]})'
-        
-        header = [ 'Measurement', 'Value', 'Uncertainty' ]
-        rows = [ 
-            [ apply_units(label, i), '%.3e' % value, '%.3e' % uncert ] \
-                for i, (label, value, uncert) in \
-                    enumerate(zip(self.labels(), 
-                                  self.values(), 
-                                  self.uncertainties())) 
-        ]
-        
-        return tabulate(rows, header, tablefmt='grid')
+                return f"{label} ({units[i]})"
+
+        uncert = np.array(self.uncertainties())
+        val = np.array(self.values())
+            
+        data = {
+            "Measurement": [
+                apply_units(label, i)
+                for i, label in enumerate(self.labels())
+            ],
+            "Value": val,
+            "Uncertainty": uncert,
+            "Relative Uncertainty ($\\%$):": (uncert/val)*100
+        }
+
+        df = pd.DataFrame(data)
+        return df
 
 # **Exponential Fit**
 #
@@ -322,15 +336,17 @@ class FitModelResult:
     covariance_matrix: np.array   = None
     
 def print_results(model, results, print_cov=False, units=None):
-    print(model.tabulate(units=units))
-    print('Chi^2 = %.3f' % results.chi2)
-        
+    display(model.tabulate(units=units))
+    display(Markdown(f"Goodness of Fit: $\\chi$² = {results.chi2:.3f}"))
+
     if print_cov:
-        print("Covariance Values:")
-        for i, fit_covariance in enumerate(results.covariance_matrix):
-            for j in range(i+1, len(fit_covariance)):
-                print(f"{model.param_names[i]} and {model.param_names[j]}: {results.covariance_matrix[i,j]:.3e}")
-            print("\n")
+        display(Markdown("**Covariance Values**"))
+        for i in range(len(model.param_names)):
+            for j in range(i + 1, len(model.param_names)):
+                display(Markdown(
+                    f"- **{model.param_names[i]} & {model.param_names[j]}**: "
+                    f"{results.covariance_matrix[i, j]:.3e}"
+                ))
 
 
 # -
