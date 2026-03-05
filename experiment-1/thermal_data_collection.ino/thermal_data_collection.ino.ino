@@ -124,5 +124,5 @@ void loop() {
  
   /* For the MAX6675 to update, you must 
    * delay AT LEAST 250ms between reads! */
-  delay(1000);
+  delay(250);
 }
