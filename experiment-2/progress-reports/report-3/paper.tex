@@ -1,0 +1,40 @@
+\documentclass[12pt]{extarticle}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref,xcolor,graphicx,wrapfig,lipsum}
+\definecolor{crimson}{rgb}{0.86, 0.08, 0.24}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=crimson,
+    filecolor=crimson,      
+    urlcolor=crimson,
+    citecolor=crimson,
+}
+\urlstyle{same}
+
+\begin{document}
+For this week, our primary goal was to obtain full, high-quality datasets for two pipes of completely different lengths, and we were successful at doing this. However, this took nearly the entire lab session, and resulted in us not being able to perform a quantitative analysis in-lab. The most important insight we gained from this lab was validating that our calculated $Q$ values make sense, and this is because even with only one pipe, you can physically validate the calculated Q score based on the sounds you hear with the pipe naturally against your ear. We calculated a roughly 20 quality index for a short pipe that was producing deep, bass-like sounds and we will soon calculate a higher quality index for the longer, thinner pipe that produces sharper sounds, and this makes sense as sharper sounds indicate that a smaller range of frequencies produce stronger resonance effects.
+
+\begin{table}[h!]
+  \begin{tabular}{|c|c|c|c|c|}
+    \hline
+    Label & Measurement & Uncertainty & Relative Uncertainty (\%) & Units \\
+    \hline
+    Length & 15.2 & 0.1 & 0.66 & cm \\
+    Inner Diameter & 5.0 & 0.1 & 2 & cm \\
+    Frequency (Min) & 885.6 & 2 & 0.23 & Hz \\
+    Frequency (Max) & 851.3 & 5.9 & 0.69 & Hz \\
+    Amplitude (Min) & 895.8 & 0.02 & 2.08 & mV \\
+    Amplitude (Max) & 900.1 & 42 & 4.64 & mV \\
+    Amplitude (Calculated) & 992 & 7.5 & 0.75 & mV \\
+    Resonant Frequency & 885.6 & 2 & 0.23 & Hz \\
+    Damping Constant & 19.79 & 0.63 & 3.18 & Hz \\ 
+    Offset & 46.65 & 26.51 & 56.83 & mV \\
+    Quality Score & 19.70631 & $9 \times 10^{-5}$ & $4 \times 10^{-4}$ & N/A \\
+    \hline
+  \end{tabular}
+\end{table}
+
+The two largest relative uncertainties to fix are the offset and the amplitude. The offset probably doesn't need a complete ``fix,'' as this quantity is simply there to allow the fitting function to interpolate between the values (and its physical interpretation is just the result of background noise within the room). More importantly, the amplitude can be better estimated through the use of automatic, time-based measurement (or, alternatively, increased averaging and with a lower time step). By lowering the time step, we get more data, and then we can increase the average without decreasing our overall sampling rate, and as uncertainty decreases (generally) with the square root of the number of datapoints, this should decrease the uncertainty in the amplitude (and similarly in the frequency, as an added benefit).
+
+For next week, my main goal will be to complete the analysis of the previous collected datasets and to perform a direct estimation of $Q$ using literature expectations, and then to compare the two (so primary data collection is complete as-is, we simply intend to improve our uncertainty and complete our analysis).
+\end{document}
